@@ -1,0 +1,41 @@
+<!DOCTYPE HTML>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.w3.org/1999/xhtml" layout:decorate="~{layouts/index}">
+<head>
+    <script src="https://api-maps.yandex.ru/3.0/?apikey=f929862e-eb68-41c5-80b9-f4e118e03687&lang=ru_RU"></script>
+
+    <script>
+        main();
+
+        async function main() {
+            // Промис `ymaps3.ready` будет зарезолвлен, когда
+            // загрузятся все компоненты API.
+            await ymaps3.ready;
+            // Создание карты.
+            const map = new ymaps3.YMap(document.getElementById('map'), {
+                    location: {
+                        // Координаты центра карты.
+                        // Порядок по умолчанию: «долгота, широта».
+                        center: [37.588144, 55.733842],
+
+                        // Уровень масштабирования. Допустимые значения:
+                        // от 0 (весь мир) до 19.
+                        zoom: 7
+                    }
+                },
+                [
+                    // Добавляем слой для отображения схематической карты.
+                    new ymaps3.YMapDefaultSchemeLayer()
+                ]
+            )
+        }
+    </script>
+
+</head>
+<body>
+
+<div layout:fragment="content">
+    <div id="map" style="height: 100%"></div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,31 @@
+server:
+  port: ${SERVICE_PORT:8081}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, env
+  security:
+    enabled: 'false'
+spring:
+  datasource:
+    password: asdert1233.
+    username: postgres
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/pm25?currentSchema=public&stringtype=unspecified
+  liquibase:
+    change-log: classpath:db/db.changelog-master.xml
+    password: asdert1233.
+    user: postgres
+    enabled: 'true'
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    properties:
+      hibernate:
+        format_sql: 'false'
+        show_sql: 'false'
+service:
+  yandex:
+    static-maps-uri: https://static-maps.yandex.ru/1.x/
+    api-key: f929862e-eb68-41c5-80b9-f4e118e03687
+  aqicn:
+    uri: https://airnet.waqi.info/airnet/map/bounds
