@@ -7,22 +7,26 @@ import lombok.Setter;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import xyz.vkislitsin.pm25.enums.AirDataProvider;
-import xyz.vkislitsin.pm25.service.AirDataProviderService;
-import xyz.vkislitsin.pm25.service.factory.ProviderInstance;
+import xyz.vkislitsin.pm25.service.implementation.AqicnService;
+import xyz.vkislitsin.pm25.service.implementation.IqAirService;
 
 @Component
 @RequiredArgsConstructor
 @Getter
 @Setter
 public class UpdateProviderInstancesJob {
+    private final AqicnService aqicnService;
+    private final IqAirService iqAirService;
 
-    private final ProviderInstance providerInstance;
-
-    @Scheduled(cron = "0 0 */2 * * ?")
+    @Scheduled(cron = "0 0 */2 * * ?") // every 2 hours
     @Transactional
     public void updateAqicnData() {
-        AirDataProviderService service = providerInstance.getProvider(AirDataProvider.AQICN);
-        service.updateLocalData(service.getRequestHeaders());
+        aqicnService.updateLocalData(aqicnService.getRequestHeaders());
+    }
+
+    @Scheduled(cron = "0 0 */2 * * ?") // every 2 minutes (tests)
+    @Transactional
+    public void updateIqAirData() {
+        iqAirService.updateLocalData(iqAirService.getRequestHeaders());
     }
 }

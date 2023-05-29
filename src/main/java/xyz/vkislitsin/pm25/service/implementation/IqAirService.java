@@ -15,26 +15,25 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 import xyz.vkislitsin.pm25.enums.AirDataProvider;
 import xyz.vkislitsin.pm25.model.dto.provider.MapPm25Object;
-import xyz.vkislitsin.pm25.model.dto.provider.aqicn.AqicnData;
-import xyz.vkislitsin.pm25.model.dto.provider.aqicn.AqicnDto;
+import xyz.vkislitsin.pm25.model.dto.provider.iqair.IqAirData;
+import xyz.vkislitsin.pm25.model.dto.provider.iqair.IqAirDto;
 import xyz.vkislitsin.pm25.model.entity.AirQualityValue;
 import xyz.vkislitsin.pm25.model.repository.AirQualityValueRepository;
 import xyz.vkislitsin.pm25.service.AirDataProviderService;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 @Service
-@Qualifier("aqicn")
+@Qualifier("iqair")
 @Getter
 @Setter
 @RequiredArgsConstructor
 @Log4j2
-public class AqicnService implements AirDataProviderService {
+public class IqAirService implements AirDataProviderService {
 
-    @Value("${service.aqicn.uri}")
+    @Value("${service.iqair.uri}")
     private String requestUri;
     private final RestTemplate restTemplate;
     private final AirQualityValueRepository repository;
@@ -42,18 +41,19 @@ public class AqicnService implements AirDataProviderService {
     @Override
     public HttpHeaders getRequestHeaders() {
         HttpHeaders headers = new HttpHeaders();
-        headers.add("Accept", "*/*");
+        headers.add("Accept", "application/json, text/plain, */*");
+        headers.add("x-real-ip", "172.31.39.11");
+        headers.add("user-location",
+                "https://www.iqair.com/ru/air-quality-map/kazakhstan/almaty-qalasy/almaty");
         headers.add("User-Agent",
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/113.0");
         headers.add("Sec-Fetch-Dest", "empty");
         headers.add("Sec-Fetch-Mode", "cors");
         headers.add("Sec-Fetch-Site", "cross-site");
-        headers.setOrigin("https://aqicn.org");
-        headers.add("Content-Type",
-                "multipart/form-data; boundary=---------------------------232954295820643828664025889788");
-        headers.add("Referer", "https://aqicn.org/");
+        headers.setOrigin("https://www.iqair.com");
+        headers.add("Referer", "https://www.iqair.com/");
         headers.add("Accept-Language","ru-RU,ru;q=0.8,en-US;q=0.5,en;q=0.3");
-        headers.add("Host", "airnet.waqi.info");
+        headers.add("Host", "website-api.airvisual.com");
 
         return headers;
     }
@@ -61,37 +61,37 @@ public class AqicnService implements AirDataProviderService {
     @Override
     @Transactional
     public void updateLocalData(HttpHeaders headers) {
-        HttpEntity<String> httpEntity = new HttpEntity<>(getRequestBody(), headers);
-        ResponseEntity<AqicnDto> resp = restTemplate.exchange(requestUri, HttpMethod.POST, httpEntity,
-                AqicnDto.class);
+        HttpEntity<String> httpEntity = new HttpEntity<>(null, headers);
+        ResponseEntity<IqAirDto> resp = restTemplate.exchange(requestUri, HttpMethod.GET, httpEntity,
+                IqAirDto.class);
 
         if (resp.getStatusCode().is2xxSuccessful()) {
-            repository.cleanProviderFromTable(AirDataProvider.AQICN.toString());
+            repository.cleanProviderFromTable(AirDataProvider.IQAIR.toString());
 
-            List<AqicnData> data = Objects.requireNonNull(resp.getBody()).getData();
+            List<IqAirData> data = Objects.requireNonNull(resp.getBody()).getData();
 
-            log.info("Got {} records from AQICN, marking old records as incative...", data.size());
+            log.info("Got {} records from IQAIR, marking old records as incative...", data.size());
 
             List<AirQualityValue> entityList = new ArrayList<>();
 
-            for (AqicnData record : data) {
+            for (IqAirData record : data) {
                 AirQualityValue entity = new AirQualityValue();
-                entity.setLatitude(record.getCoordinates().get(0));
-                entity.setLongitude(record.getCoordinates().get(1));
-                entity.setPm10Value(record.getPm10());
+                entity.setLatitude(record.getCoordinates().getLatitude());
+                entity.setLongitude(record.getCoordinates().getLongitude());
+                entity.setPm10Value(null); //iqair hasn't got such ones
                 entity.setPm25Value(record.getPm25());
                 entity.setTitle(record.getTitle());
-                entity.setProviderName(AirDataProvider.AQICN);
+                entity.setProviderName(AirDataProvider.IQAIR);
                 entityList.add(entity);
             }
             repository.saveAll(entityList);
-            log.info("Successfully saved {} new AQICN records to DB", data.size());
+            log.info("Successfully saved {} new IQAIR records to DB", data.size());
         }
     }
 
     @Override
     public List<MapPm25Object> getActiveLocations() {
-        List<AirQualityValue> entityList = repository.findAllByActiveTrueAndProviderName(AirDataProvider.AQICN);
+        List<AirQualityValue> entityList = repository.findAllByActiveTrueAndProviderName(AirDataProvider.IQAIR);
         List<MapPm25Object> dtoList = new ArrayList<>();
 
         if (entityList.size() > 0) {
@@ -107,30 +107,5 @@ public class AqicnService implements AirDataProviderService {
         }
 
         return dtoList;
-    }
-
-    private String getRequestBody() {
-        return "-----------------------------232954295820643828664025889788\n" +
-                "Content-Disposition: form-data; name=\"bounds\"\n" +
-                "\n" +
-                "75.87173886562088,43.05323028392481,78.04887139374681,43.45247861226447\n" +
-                "-----------------------------232954295820643828664025889788\n" +
-                "Content-Disposition: form-data; name=\"zoom\"\n" +
-                "\n" +
-                "12\n" +
-                "-----------------------------232954295820643828664025889788\n" +
-                "Content-Disposition: form-data; name=\"xscale\"\n" +
-                "\n" +
-                "1532.3825981654\n" +
-                "-----------------------------232954295820643828664025889788\n" +
-                "Content-Disposition: form-data; name=\"width\"\n" +
-                "\n" +
-                "2383\n" +
-                "-----------------------------232954295820643828664025889788\n" +
-                "Content-Disposition: form-data; name=\"time\"\n" +
-                "\n" +
-                Instant.now().toString() +
-                "\n" +
-                "-----------------------------232954295820643828664025889788--";
     }
 }

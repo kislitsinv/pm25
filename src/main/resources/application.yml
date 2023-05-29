@@ -27,5 +27,10 @@ service:
   yandex:
     static-maps-uri: https://static-maps.yandex.ru/1.x/
     api-key: f929862e-eb68-41c5-80b9-f4e118e03687
+  osm:
+    prod-api-uri: https://api.openstreetmap.org/
+    dev-api-uri: https://master.apis.dev.openstreetmap.org/
   aqicn:
     uri: https://airnet.waqi.info/airnet/map/bounds
+  iqair:
+    uri: https://website-api.airvisual.com/v1/places/map/clusters?bbox=75.94,43.02,77.92,43.49&zoomLevel=6&units.temperature=celsius&units.distance=kilometer&units.pressure=millibar&units.system=metric&AQI=US&language=ru

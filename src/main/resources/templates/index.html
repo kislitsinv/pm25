@@ -1,40 +1,64 @@
 <!DOCTYPE HTML>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.w3.org/1999/xhtml" layout:decorate="~{layouts/index}">
 <head>
-    <script src="https://api-maps.yandex.ru/3.0/?apikey=f929862e-eb68-41c5-80b9-f4e118e03687&lang=ru_RU"></script>
-
-    <script>
-        main();
-
-        async function main() {
-            // Промис `ymaps3.ready` будет зарезолвлен, когда
-            // загрузятся все компоненты API.
-            await ymaps3.ready;
-            // Создание карты.
-            const map = new ymaps3.YMap(document.getElementById('map'), {
-                    location: {
-                        // Координаты центра карты.
-                        // Порядок по умолчанию: «долгота, широта».
-                        center: [37.588144, 55.733842],
-
-                        // Уровень масштабирования. Допустимые значения:
-                        // от 0 (весь мир) до 19.
-                        zoom: 7
-                    }
-                },
-                [
-                    // Добавляем слой для отображения схематической карты.
-                    new ymaps3.YMapDefaultSchemeLayer()
-                ]
-            )
-        }
-    </script>
-
+    <link th:href="@{/css/leaflet.css}" rel="stylesheet" type="text/css">
+    <script th:src="@{/js/leaflet.js}"></script>
 </head>
 <body>
 
 <div layout:fragment="content">
-    <div id="map" style="height: 100%"></div>
+    <div id="map" style="height: 80%"></div>
+
+    <div class="row">
+        <div class="col-lg-4 mb-4">
+            <div class="card bg-info text-white shadow">
+                <div class="card-body">
+                    <span th:text="${lastUpdate}"></span>
+                    <div class="text-white-50 small">Последнее обновление провайдера (GMT +6)</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 mb-4">
+            <div th:class="'card text-white shadow ' + ${todayAvgBg}">
+                <div class="card-body">
+                    <span th:text="${todayAvgValue}"></span>
+                    <div class="text-white-50 small" th:text="'Среднее значение PM25 за сегодня (' + ${#dates.format(#dates.createNow(), 'dd/MM/yyyy')} + ')'"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:src="@{/js/custom_map.js}"></script>
+
+    <script type="text/javascript" th:inline="javascript">
+        /*<![CDATA[*/
+
+        $(function() {
+            let map = L.map('map').setView([43.2442, 76.9798], 12);
+
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+            }).addTo(map);
+
+            let list = [[${aqicnLocations != null} ? ${aqicnLocations} : ${iqAirLocations}]]
+            for (i = 0; i < list.length; i++) {
+                if (list[i].pm25 > 0 && list[i].pm25 < 300) { //??
+
+                    let myIcon = L.icon({
+                        iconUrl: '/img/' + defineIcon(list[i].pm25),
+                        iconSize: [64, 64]
+                    });
+
+                    let marker = L.marker([list[i].latitude, list[i].longitude], {icon: myIcon}).addTo(map);
+                    marker.bindPopup("<div style='text-align: center'><b>" + list[i].title + "</b><br /><br />Кол-во PM2.5<br /><b>" + list[i].pm25 + "</b></div>").openPopup();
+                }
+            }
+        });
+
+        /*]]>*/
+    </script>
+
 </div>
 
 </body>
